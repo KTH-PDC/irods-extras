@@ -1,0 +1,5 @@
+iRODS Enhancements for ZSH
+++++++++++++++++++++++++++++
+
+* irods-env.sh - function irods-env for switching between iRODS command line environments)
+  
