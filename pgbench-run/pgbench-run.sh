@@ -65,7 +65,7 @@ echo "$0: running pgbench against database $DBNAME with $NUMCLIENTS clients and 
 
 for i in {1..10}; do 
     echo "$0: pgbench run $i of $NUMRUNS against postgres database $DBNAME..."
-    runuser -l postgres -c  "/usr/pgsql-9.4/bin/pgbench -c $NUMCLIENTS -t $NUMXACTS $DBNAME >> $LOGFILE" > /dev/null 2>&1
+    runuser -l postgres -c  "/usr/pgsql-9.4/bin/pgbench -c $NUMCLIENTS -t $NUMXACTS $DBNAME >> $LOGFILE"
 done
 
 # compute maximum, minimum, average and standard deviation from log using awk
