@@ -1,4 +1,6 @@
 # irods-env - a function to switch between different iRODS environments
+# Author: Ilari Korhonen, KTH Royal Institute of Technology
+
 function irods-env {
     env_name=$@
     env_file="$HOME/.irods/irods_environment.json.$env_name"
