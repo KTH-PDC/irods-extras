@@ -1,0 +1,23 @@
+HP Smart Array Controller shell utils
++++++++++++++++++++++++++++++++++++++++
+
+HOWTO:
+
+# source hp-smart-array-utils.sh
+
+# array-show 0 all
+
+   Smart Array P420i in Slot 0 (Embedded)
+
+   array A
+
+   logicaldrive 1 (279.4 GB, RAID 1, OK)
+
+# array-create 0 6 128 1I:1:3,1I:1:4,1I:1:5,1I:1:6,1I:1:7,1I:1:8
+# array-create 0 6 128 1I:1:9,1I:1:10,1I:1:11,1I:1:12,1I:1:13,2I:1:14
+# array-create 0 6 128 2I:1:15,2I:1:16,2I:1:17,2I:1:18,2I:1:19,2I:1:20
+
+# array-create 0 1+0 128 2I:1:21,2I:1:22,2I:1:23,2I:1:24
+
+# for i in 2 3 4 5 ; do parted /dev/disk/by-id/wwn-0x`array-get-wwn 0 $i` mklabel gpt; done
+# zpool create tank wwn-0x`array-get-wwn 0 2` wwn-0x`array-get-wwn 0 3` wwn-0x`array-get-wwn 0 4`
