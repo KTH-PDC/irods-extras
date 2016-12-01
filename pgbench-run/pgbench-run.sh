@@ -11,8 +11,6 @@ DBNAME=test
 OUTFILE=/tmp/pgbench-run.out
 
 ID=untitled
-LOGDIR=/tmp/pgbench-run/$ID
-LOGFILE=$LOGDIR/pgbench-run.log
 TAG="including connections establishing"
 
 # function show_help - shows help
@@ -51,6 +49,9 @@ while getopts "hc:t:r:d:i:o:" opt; do
     esac
 done
 
+LOGDIR=/tmp/pgbench-run/$ID
+LOGFILE=$LOGDIR/pgbench-run.log
+
 mkdir -p $LOGDIR
 chown -R postgres:postgres $LOGDIR
 
@@ -63,7 +64,7 @@ fi
 
 echo "$0: running pgbench against database $DBNAME with $NUMCLIENTS clients and $NUMXACTS transactions per client..."
 
-for i in {1..10}; do 
+for ((i=1; i <= $NUMRUNS; i++)); do 
     echo "$0: pgbench run $i of $NUMRUNS against postgres database $DBNAME..."
     runuser -l postgres -c  "/usr/pgsql-9.4/bin/pgbench -c $NUMCLIENTS -t $NUMXACTS $DBNAME >> $LOGFILE"
 done
