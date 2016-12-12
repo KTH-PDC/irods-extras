@@ -19,6 +19,15 @@ ctrl_show() {
     $HPBIN ctrl slot=$SLOT show $ARG2 $ARG3
 }
 
+array_set() {
+    SLOT=$1
+    ID=$2
+    KEY=$3
+    VALUE=$4
+
+    $HPBIN ctrl slot=$SLOT ld $ID modify $KEY=$VALUE
+}
+
 array_create() {
     SLOT=$1
     RAID=$2
