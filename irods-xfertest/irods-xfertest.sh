@@ -10,7 +10,12 @@ DSTPATH=irods-xfertest.tmp
 FILESIZE=256
 FILEPATH=/tmp/irods-xfertest.tmp
 
-export DYLD_LIBRARY_PATH=/Applications/iRODS.app/Contents/Frameworks
+ARCH=`uname -s`
+
+# readiness for Kanki-bundled OS X irods-icommands
+if [ $ARCH == "Darwin" ]; then
+    export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Applications/iRODS.app/Contents/Frameworks
+fi
 
 # function show_help - shows help
 show_help() {
