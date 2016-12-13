@@ -21,7 +21,7 @@ show_help() {
 # parse command line arguments POSIX style
 OPTIND=1
 
-while getopts "hc:t:r:d:i:o:" opt; do
+while getopts "hr:d:s:n:" opt; do
     case "$opt" in
 	h)
 	    show_help
@@ -94,5 +94,6 @@ for ((i=1; i <= $NUMRUNS; i++)); do
 	echo "$0: files differ, test run $i failed!"
 	continue
     fi
-done
 
+    echo "$0: all tests succesful for test run $i out of $NUMRUNS!"
+done
