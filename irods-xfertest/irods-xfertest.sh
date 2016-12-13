@@ -1,10 +1,11 @@
-# irods-xfertest - do iRODS transfer (put and get) in a sequence and collect results 
+# irAods-xfertest - do iRODS transfer (put and get) in a sequence and collect results 
 # Author: Ilari Korhonen, KTH Royal Institute of Technology
 
 #!/bin/sh
 
 # set defaults
 NUMRUNS=10
+NUMTHREADS=64
 DSTPATH=irods-xfertest.tmp
 FILESIZE=256
 FILEPATH=/tmp/irods-xfertest.tmp
@@ -14,7 +15,7 @@ export DYLD_LIBRARY_PATH=/Applications/iRODS.app/Contents/Frameworks
 # function show_help - shows help
 show_help() {
     echo "irods-xfertest - do iRODS transfer (put and get) in a sequence and collect results"
-    echo "usage: $1 [-h] [-r runs] [-d dstpath]"
+    echo "usage: $1 [-h] [-r runs] [-d dstpath] [-s filesize] [-n numthreads]"
 }
 
 # parse command line arguments POSIX style
@@ -34,6 +35,9 @@ while getopts "hc:t:r:d:i:o:" opt; do
 	    ;;
 	s)
 	    FILESIZE=$OPTARG
+	    ;;
+	n)
+	    NUMTHREADS=$OPTARG
 	    ;;
     esac
 done
@@ -66,6 +70,30 @@ echo "$0: testing iRODS transfer to $DSTPATH with testfile $FILEPATH of size $FI
 
 for ((i=1; i <= $NUMRUNS; i++)); do 
     echo "$0: test run $i of $NUMRUNS..."
+
+    echo "$0: iput of $FILEPATH to $DSTPATH with $NUMTHREADS..."
+    iput -K -N $NUMTHREADS $FILEPATH $DSTPATH/irods-xfertest.tmp
+
+    if [ $? != 0 ]; then
+	echo "$0: put failed with $?, test run $i failed"
+	continue
+    fi
+
+    echo "$0: iget ot $DSTPATH/irods-xfertest.tmp to $FILEPATH.2 with $NUMTHREADS..."
+    iget -K -N $NUMTHREADS $DSTPATH/irods-xfertest.tmp $FILEPATH.2
+
+    if [ $? != 0 ]; then
+	echo "$0: get failed with $?, test run $i failed"
+	continue
+    fi
+
+    echo "$0: diffing original $FILEPATH and $FILEPATH.2 from iRODS..."
+    diff $FILEPATH $FILEPATH.2
+
+    if [ $? != 0 ]; then
+	echo "$0: files differ, test run $i failed!"
+	continue
+    fi
 done
 
 echo "$0: removing temporary iRODS collection $DSTPATH..."
