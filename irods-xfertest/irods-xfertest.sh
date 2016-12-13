@@ -31,7 +31,7 @@ while getopts "hr:d:s:n:" opt; do
 	    NUMRUNS=$OPTARG
 	    ;;
 	d)
-	    DBNAME=$OPTARG
+	    DSTPATH=$OPTARG
 	    ;;
 	s)
 	    FILESIZE=$OPTARG
