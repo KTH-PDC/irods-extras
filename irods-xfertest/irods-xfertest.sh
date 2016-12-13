@@ -42,8 +42,7 @@ while getopts "hr:d:s:n:" opt; do
     esac
 done
 
-# initialize counters
-NUMFAILS=0
+# initialize counter
 NUMSUCCESS=0
 
 echo "$0: creating iRODS test collection $DSTPATH..."
@@ -96,4 +95,7 @@ for ((i=1; i <= $NUMRUNS; i++)); do
     fi
 
     echo "$0: all tests succesful for test run $i out of $NUMRUNS!"
+    ((NUMSUCCESS++))
 done
+
+echo "$0: out of $NUMRUNS tests $NUMSUCCESS succeeded"
