@@ -76,6 +76,7 @@ for ((i=1; i <= $NUMRUNS; i++)); do
 
     if [ $? != 0 ]; then
 	echo "$0: put failed with $?, test run $i failed"
+	((NUMFAILS++))
 	continue
     fi
 
@@ -84,6 +85,7 @@ for ((i=1; i <= $NUMRUNS; i++)); do
 
     if [ $? != 0 ]; then
 	echo "$0: get failed with $?, test run $i failed"
+	((NUMFAILS++))
 	continue
     fi
 
@@ -92,8 +94,12 @@ for ((i=1; i <= $NUMRUNS; i++)); do
 
     if [ $? != 0 ]; then
 	echo "$0: files differ, test run $i failed!"
+	((NUMFAILS++))
 	continue
     fi
 
     echo "$0: all tests succesful for test run $i out of $NUMRUNS!"
+    ((NUMSUCCESS++))
 done
+
+echo "$0: out of $NUMRUNS tests $NUMFAILS failed and $NUMSUCCESS succeeded"
