@@ -72,7 +72,7 @@ for ((i=1; i <= $NUMRUNS; i++)); do
     echo "$0: test run $i of $NUMRUNS..."
 
     echo "$0: iput of $FILEPATH to $DSTPATH with $NUMTHREADS..."
-    iput -K -N $NUMTHREADS $FILEPATH $DSTPATH/irods-xfertest.tmp
+    iput -f -K -N $NUMTHREADS $FILEPATH $DSTPATH/irods-xfertest.tmp
 
     if [ $? != 0 ]; then
 	echo "$0: put failed with $?, test run $i failed"
@@ -80,7 +80,7 @@ for ((i=1; i <= $NUMRUNS; i++)); do
     fi
 
     echo "$0: iget ot $DSTPATH/irods-xfertest.tmp to $FILEPATH.2 with $NUMTHREADS..."
-    iget -K -N $NUMTHREADS $DSTPATH/irods-xfertest.tmp $FILEPATH.2
+    iget -f -K -N $NUMTHREADS $DSTPATH/irods-xfertest.tmp $FILEPATH.2
 
     if [ $? != 0 ]; then
 	echo "$0: get failed with $?, test run $i failed"
@@ -96,8 +96,3 @@ for ((i=1; i <= $NUMRUNS; i++)); do
     fi
 done
 
-echo "$0: removing temporary iRODS collection $DSTPATH..."
-irm -rf $DSTPATH
-
-echo "$0: removing temporary local file $FILEPATH..."
-rm $FILEPATH
