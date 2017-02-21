@@ -33,8 +33,10 @@ array_create() {
     RAID=$2
     STRIPE=$3
     DRIVES=$4
+    EXTOPT1=${5:-}
+    EXTOPT2=${6:-}
 
-    $HPBIN ctrl slot=$SLOT create type=ld drives=$DRIVES raid=$RAID stripsize=$STRIPE
+    $HPBIN ctrl slot=$SLOT create type=ld drives=$DRIVES raid=$RAID stripsize=$STRIPE $EXTOPT1 $EXTOPT2
 }
     
 array_show() {
