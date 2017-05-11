@@ -1,0 +1,20 @@
+# id numruns numclients numxacts min(tps) max(tps) avg(tps) stddev(tps)
+zfs-noatime-defaults-nvme-no-slog 100 10 1000 1607.262512 3461.562293 2448.6 533.535
+# id numruns numclients numxacts min(tps) max(tps) avg(tps) stddev(tps)
+zfs-noatime-ashift12-nvme-no-slog 100 10 1000 2399.303626 3801.958997 3142.5 285.398
+# id numruns numclients numxacts min(tps) max(tps) avg(tps) stddev(tps)
+zfs-noatime-ashift13-nvme-no-slog 100 10 1000 2331.432206 3515.735553 3079.48 211.243
+# id numruns numclients numxacts min(tps) max(tps) avg(tps) stddev(tps)
+zfs-noatime-ashift12-8k-nvme-no-slog 100 10 1000 3693.876624 5516.644821 5008.12 378.921
+# id numruns numclients numxacts min(tps) max(tps) avg(tps) stddev(tps)
+zfs-noatime-ashift13-8k-nvme-no-slog 100 10 1000 3577.535936 5386.720764 4866.86 413.488
+# id numruns numclients numxacts min(tps) max(tps) avg(tps) stddev(tps)
+zfs-noatime-ashift12-8k-thruput-nvme-no-slog 100 10 1000 3646.894542 5841.800536 4865.91 383.86
+# id numruns numclients numxacts min(tps) max(tps) avg(tps) stddev(tps)
+zfs-noatime-ashift12-8k-thruput-nvme-no-slog 100 10 1000 1253.418071 5841.800536 4740.33 707.463
+# id numruns numclients numxacts min(tps) max(tps) avg(tps) stddev(tps)
+zfs-noatime-ashift12-8k-thruput-and-latency-nvme-no-slog 100 10 1000 3580.012931 5449.187417 4986.62 391.863
+# id numruns numclients numxacts min(tps) max(tps) avg(tps) stddev(tps)
+zfs-noatime-ashift12-8k-thruput-and-latency-nvme-slog-pmem 100 10 1000 4320.890034 6148.953479 5569.1 326.171
+# id numruns numclients numxacts min(tps) max(tps) avg(tps) stddev(tps)
+zfs-noatime-ashift12-8k-thruput-and-latency-nvme-slog-pmem-concat 100 10 1000 4414.876545 6799.719036 5854.46 407.289
