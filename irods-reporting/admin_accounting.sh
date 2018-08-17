@@ -33,7 +33,8 @@ function acct_for_class()
 	query_total_bytes="SELECT SUM(DATA_SIZE) WHERE DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}'"
 
 	total_objs=$(iquest "%s" "$query_total_objs")
-	total_bytes=$(iquest "%s" "$query_total_bytes")
+
+	[ "${total_objs}" -ne "0" ] && total_bytes=$(iquest "%s" "$query_total_bytes") || total_bytes="0"
 
 	printf "${name} ${entity} owns ${total_objs} objects (${total_bytes} bytes) in total (counting all replicas).\n" >> ${OUTFILE}
 
@@ -55,7 +56,8 @@ function acct_for_class()
 			query_resc_bytes="SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '$objpath%' AND DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}' AND RESC_NAME = '$resc'"
 
 			resc_objs=$(iquest "%s" "$query_resc_objs")
-			resc_bytes=$(iquest "%s" "$query_resc_bytes")
+
+			[ "${resc_objs}" -ne "0" ] && resc_bytes=$(iquest "%s" "$query_resc_bytes") || resc_bytes="0"
 
 			if [ "$resc_objs" -ne "0" ]; then
 			    path_objs=$(( $path_objs - $resc_objs ))
