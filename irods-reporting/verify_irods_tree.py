@@ -6,67 +6,114 @@
 # Copyright (C) 2018 KTH Royal Institute of Technology. All rights reserved.
 # See LICENSE file for more information.
 
+from __future__ import print_function
+
+import sys
+
 import psycopg2
 import psycopg2.extras
 
 try:
     conn = psycopg2.connect("dbname='ICAT' user='postgres' host='localhost'")
 except:
-    print "error: unable to connect to the database at localhost!"
+    print("ERROR: unable to connect to the database at localhost!")
 
 # get a dict type cursor
 cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-print "querying for all iRODS collections from iCAT database..."
-
 # query all collections
+print("querying for all iRODS collections from iCAT database...")
+
 try:
-    cur.execute("SELECT coll_id, coll_name, parent_coll_name from r_coll_main")
+    cur.execute("SELECT coll_id, coll_name, parent_coll_name from r_coll_main ORDER BY coll_name ASC")
     coll_rows = cur.fetchall()
 except:
-    print "error: unable to execute query for all collections!"
+    print("ERROR: unable to execute query for all collections!")
     exit(-1)
 
 coll_count = cur.rowcount
 orphan_count = 0
-affected_count = 0
-print "total of " + str(coll_count) + " collections present, verifying all collections..."
+
+print("total of " + str(coll_count) + " collections present, verifying all collections...")
 
 # loop over collections and verify
 for coll_row in coll_rows:
     coll_id = coll_row['coll_id']
     coll_name = coll_row['coll_name']
     parent_coll_name = coll_row['parent_coll_name']
+
+    print("verifying collection id: " + str(coll_id) + " (" + coll_name + ")", end='')
     
+    sys.stdout.write(u"\u001b[0K")
+    sys.stdout.write(u"\u001b[1000D")
+    sys.stdout.flush()
+
+    # first, verify the existence of the parent collection
     try:
-        cur.execute("SELECT coll_id from r_coll_main WHERE coll_name = '" + parent_coll_name + "'")
+        cur.execute("SELECT coll_id FROM r_coll_main WHERE coll_name = '" + parent_coll_name + "'")
     except:
-        print "error: unable to execute query for parent collection!"
+        print("ERROR: unable to execute query for parent collection!")
         exit(-1)
 
+    # if parent not found, report consistency error and increase counter
     if cur.rowcount == 0:
-        print "consistency error: collection id " + str(coll_id) + " has no parent in iCAT!"
-        print "orphan path: " + coll_name
+        print("CONSISTENCY ERROR: collection id " + str(coll_id) + " has no parent in iCAT!")
+        print("ORPHAN PATH: " + coll_name)
         
-        try:
-            cur.execute("SELECT DISTINCT data_name FROM r_data_main WHERE coll_id = " + str(coll_id))
-        except:
-            print "error: unable to query for count of data objects!"
-            exit(-1)
-
-        data_count = cur.rowcount
-        print "objects affected: " + str(data_count)
-
-        affected_count = affected_count + data_count
         orphan_count = orphan_count + 1
 
-    else:
-        parent_row = cur.fetchone()
-        parent_id = parent_row['coll_id']
+    # verify consistency of data objects in the collection
+    try:
+        cur.execute("SELECT DISTINCT data_id FROM r_data_main WHERE coll_id = " + str(coll_id))
+    except:
+        print("ERROR: unable to query data objects in collection id " + str(coll_id))
+        exit(-1)
 
-print "collection verification process complete:"
-print "total of " + str(orphan_count) + " orphan collections"
-print "total of " + str(affected_count) + " data objects affected by orpan collections"
+    data_count = cur.rowcount
+    data_id_rows = cur.fetchall()
+
+    for data_id_row in data_id_rows:
+        data_id = data_id_row['data_id']
+
+        try:
+            cur.execute("""
+            SELECT 
+            COUNT (data_repl_num) as repls, 
+            COUNT (DISTINCT data_repl_num) dst_repls, 
+            COUNT (data_checksum) as chksums, 
+            COUNT (DISTINCT data_checksum) as dst_chksums 
+            FROM r_data_main 
+            WHERE data_id = """ + str(data_id)
+            )
+        except:
+            print("ERROR: unable to query data object id " + str(data_id))
+            exit(-1)
+
+        if cur.rowcount != 0:
+            data_row = cur.fetchone()
+
+            repls = data_row['repls']
+            dst_repls = data_row['dst_repls']
+            chksums = data_row['chksums']
+            dst_chksums = data_row['dst_chksums']
+
+            if repls != dst_repls:
+                print("CONSISTENCY ERROR: data object id " + str(data_id) + " has inconsistent replica numbers!")
+
+            if chksums != repls:
+                print("WARNING: data object id " + str(data_id) + " has unchecksummed replicas!")
+
+            if dst_chksums != 1:
+                print("WARNING: data object id " + str(data_id) + " has differing checksums for replicas!")
+
+            #print "data object id " + str(data_id) + " has " + str(dst_repls) + " proper replicas (" + str(chksums) + " checksummed, " + str(dst_chksums) + " checksum)"
+
+        else:
+            print("ERROR: data object id " + str(data_id) + " missing")
+            exit(-1)
+
+print("collection verification process complete:")
+print("total of " + str(orphan_count) + " orphan collections")
 
 print "querying all iRODS data objects from iCAT database..."
 
