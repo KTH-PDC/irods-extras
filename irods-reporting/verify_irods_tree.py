@@ -106,43 +106,9 @@ for coll_row in coll_rows:
             if dst_chksums != 1:
                 print("WARNING: data object id " + str(data_id) + " has differing checksums for replicas!")
 
-            #print "data object id " + str(data_id) + " has " + str(dst_repls) + " proper replicas (" + str(chksums) + " checksummed, " + str(dst_chksums) + " checksum)"
-
         else:
             print("ERROR: data object id " + str(data_id) + " missing")
             exit(-1)
 
 print("collection verification process complete:")
 print("total of " + str(orphan_count) + " orphan collections")
-
-print "querying all iRODS data objects from iCAT database..."
-
-try:
-    cur.execute("SELECT data_id, data_name, data_repl_num, coll_id FROM r_data_main")
-except:
-    print "error: unable to execute query for all data objects!"
-    exit(-1)
-
-data_counter = 0
-data_count_total = cur.rowcount
-data_rows = cur.fetchall()
-
-for data_row in data_rows:
-    data_id = data_row['data_id']
-    data_name = data_row['data_name']
-    data_repl_num = data_row['data_repl_num']
-    coll_id = data_row['coll_id']
-
-    try: 
-        cur.execute("SELECT coll_name FROM r_coll_main WHERE coll_id = " + str(coll_id))
-    except:
-        print "error: unable to query for data object id " + str(data_id) + " parent collection!"
-        exit(-1)
-
-    if cur.rowcount == 0:
-        print "consistency error: data object id " + str(data_id) + " parent collection doesn't exist!"
-
-    data_counter = data_counter + 1
-
-    if data_counter % 10000 == 0:
-        print str(data_counter) + " objects done..."
