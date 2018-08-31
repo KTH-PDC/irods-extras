@@ -6,12 +6,19 @@
 # Copyright (C) 2018 KTH Royal Institute of Technology. All rights reserved.
 # See LICENSE file for more information.
 
+#!/usr/bin/env python
+
 from __future__ import print_function
 
 import sys
 
 import psycopg2
 import psycopg2.extras
+
+def reset_line():
+    sys.stdout.write(u"\u001b[0K")
+    sys.stdout.write(u"\u001b[1000D")
+    sys.stdout.flush()
 
 try:
     conn = psycopg2.connect("dbname='ICAT' user='postgres' host='localhost'")
@@ -33,6 +40,7 @@ except:
 
 coll_count = cur.rowcount
 orphan_count = 0
+data_err_count = 0
 
 print("total of " + str(coll_count) + " collections present, verifying all collections...")
 
@@ -42,11 +50,13 @@ for coll_row in coll_rows:
     coll_name = coll_row['coll_name']
     parent_coll_name = coll_row['parent_coll_name']
 
-    print("verifying collection id: " + str(coll_id) + " (" + coll_name + ")", end='')
+    coll_name_disp = coll_name
     
-    sys.stdout.write(u"\u001b[0K")
-    sys.stdout.write(u"\u001b[1000D")
-    sys.stdout.flush()
+    if len(coll_name) > 128:
+        coll_name_disp = coll_name[:128] + "..."
+    
+    print("verifying collection id: " + str(coll_id) + " (" + coll_name_disp + ")", end='')
+    reset_line()
 
     # first, verify the existence of the parent collection
     try:
@@ -81,7 +91,7 @@ for coll_row in coll_rows:
             COUNT (data_repl_num) as repls, 
             COUNT (DISTINCT data_repl_num) dst_repls, 
             COUNT (data_checksum) as chksums, 
-            COUNT (DISTINCT data_checksum) as dst_chksums 
+            COUNT (DISTINCT data_checksum) as dst_chksums
             FROM r_data_main 
             WHERE data_id = """ + str(data_id)
             )
@@ -98,17 +108,61 @@ for coll_row in coll_rows:
             dst_chksums = data_row['dst_chksums']
 
             if repls != dst_repls:
+                data_err_count = data_err_count + 1
                 print("CONSISTENCY ERROR: data object id " + str(data_id) + " has inconsistent replica numbers!")
+                print("VIRTUAL PATH: " + coll_name)
 
             if chksums != repls:
+                data_err_count = data_err_count + 1
                 print("WARNING: data object id " + str(data_id) + " has unchecksummed replicas!")
-
+                print("VIRTUAL PATH: " + coll_name)
+                
             if dst_chksums != 1:
+                data_err_count = data_err_count + 1
                 print("WARNING: data object id " + str(data_id) + " has differing checksums for replicas!")
+                print("VIRTUAL PATH: " + coll_name)
 
         else:
             print("ERROR: data object id " + str(data_id) + " missing")
             exit(-1)
 
-print("collection verification process complete:")
+
+reset_line()
+print("iRODS virtual directory verification process complete:")
 print("total of " + str(orphan_count) + " orphan collections")
+print("total of " + str(data_err_count) + " data object issues")
+
+# ----
+# print "querying all iRODS data objects from iCAT database..."
+
+# try:
+#     cur.execute("SELECT data_id, data_name, data_repl_num, coll_id FROM r_data_main")
+# except:
+#     print "error: unable to execute query for all data objects!"
+#     exit(-1)
+
+# data_counter = 0
+# data_count_total = cur.rowcount
+# data_rows = cur.fetchall()
+
+# for data_row in data_rows:
+#     data_id = data_row['data_id']
+#     data_name = data_row['data_name']
+#     data_repl_num = data_row['data_repl_num']
+#     coll_id = data_row['coll_id']
+
+#     #print "querying for data object id " + str(data_id) + " parent collection..."
+    
+#     try: 
+#         cur.execute("SELECT coll_name FROM r_coll_main WHERE coll_id = " + str(coll_id))
+#     except:
+#         print "error: unable to query for data object id " + str(data_id) + " parent collection!"
+#         exit(-1)
+
+#     if cur.rowcount == 0:
+#         print "consistency error: data object id " + str(data_id) + " parent collection doesn't exist!"
+
+#     data_counter = data_counter + 1
+
+#     if data_counter % 10000 == 0:
+#         print str(data_counter) + " objects done..."
