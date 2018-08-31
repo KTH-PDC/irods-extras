@@ -52,10 +52,10 @@ for coll_row in coll_rows:
 
     coll_name_disp = coll_name
     
-    if len(coll_name) > 128:
-        coll_name_disp = coll_name[:128] + "..."
+    if len(coll_name) > 96:
+        coll_name_disp = coll_name[:96] + "..."
     
-    print("verifying collection id: " + str(coll_id) + " (" + coll_name_disp + ")", end='')
+    print("verifying coll id: " + str(coll_id) + " [" + coll_name_disp + "]", end='')
     reset_line()
 
     # first, verify the existence of the parent collection
@@ -81,6 +81,7 @@ for coll_row in coll_rows:
 
     data_count = cur.rowcount
     data_id_rows = cur.fetchall()
+    data_counter = 0
 
     for data_id_row in data_id_rows:
         data_id = data_id_row['data_id']
@@ -88,24 +89,30 @@ for coll_row in coll_rows:
         try:
             cur.execute("""
             SELECT 
+            data_name,
             COUNT (data_repl_num) as repls, 
             COUNT (DISTINCT data_repl_num) dst_repls, 
             COUNT (data_checksum) as chksums, 
             COUNT (DISTINCT data_checksum) as dst_chksums
             FROM r_data_main 
-            WHERE data_id = """ + str(data_id)
-            )
+            WHERE data_id = """ + str(data_id) + " GROUP BY data_name")
         except:
-            print("ERROR: unable to query data object id " + str(data_id))
+            print("\nERROR: unable to query data object id " + str(data_id))
             exit(-1)
 
         if cur.rowcount != 0:
             data_row = cur.fetchone()
 
+            data_name = data_row['data_name']
             repls = data_row['repls']
             dst_repls = data_row['dst_repls']
             chksums = data_row['chksums']
             dst_chksums = data_row['dst_chksums']
+
+            data_name_disp = coll_name_disp + "/" + data_name
+
+            print("verifying coll id: " + str(coll_id) + " / data id: " + str(data_id) + " [" + data_name_disp + "]", end='')
+            reset_line()
 
             if repls != dst_repls:
                 data_err_count = data_err_count + 1
