@@ -3,17 +3,27 @@
 
 function irods-env {
     env_name=$1
-    env_file="$HOME/.irods/irods_environment.json.$env_name"
 
-    if [ ! -f "$env_file" ]; then
-	echo "irods-env: unable to find iRODS environment '$env_name'"
+    env_file_base="$HOME/.irods/irods_environment.json"
+    env_file="${env_file_base}.${env_name}"
+    env_file_backup="${env_file_base}.backup"
+
+    # check we have the requested env file
+    if [ ! -f "${env_file}" ]; then
+	echo "irods-env: unable to find iRODS environment '${env_name}'"
 	return
     fi
 
-    cp $HOME/.irods/irods_environment.json $HOME/.irods/irods_environment.json.backup
-    cp $HOME/.irods/irods_environment.json."$@" $HOME/.irods/irods_environment.json
+    # check if we have an existing env files
+    if [ -f "${env_file_base}" ]; then
+	cp ${env_file_base} ${env_file_backup}
+    fi
+
+    # overwrite the env file and clean up old auth token
+    cp ${env_file} ${env_file_base}
     iexit full
 
+    # for non-kerberos auth we run iinit
     auth_scheme=`python -c "import os,json,sys; print json.load(open(os.path.join(os.getenv('HOME'), '.irods', 'irods_environment.json')))['irods_authentication_scheme']"`
 
     if [ $auth_scheme != "KRB" ]; then
