@@ -15,18 +15,19 @@ import sys
 import psycopg2
 import psycopg2.extras
 
-# we need one argument
-if len(sys.argv) < 2:
-    print("usage: " + sys.argv[0] + " [basepath in iRODS]")
+# we take two arguments currently, db role and a virtual path in iRODS
+if len(sys.argv) < 3:
+    print("usage: " + sys.argv[0] + "[database role] [base path in iRODS]")
     exit(-1)
 
-base_path = sys.argv[1]
+db_role = sys.argv[1]
+base_path = sys.argv[2]
 
 # we connect to the local postgres
 try:
-    conn = psycopg2.connect("dbname='ICAT' user='postgres' host='localhost'")
+    conn = psycopg2.connect("dbname='ICAT' user='" + db_role + "' host='localhost'")
 except:
-    print("ERROR: unable to connect to the database at localhost!")
+    print("ERROR: unable to connect to the database at localhost as role '" + db_role + "' !")
 
 # get a dict type cursor
 cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -109,8 +110,12 @@ for coll_row in coll_rows:
             print("\n" + objpath + " [" + checksum + "]", end='')
 
             # process each replica and compare to baseline (first available replica)
+            current_repl_num = 0
+
             for data_row in data_rows:
-                print(" [replica #" + str(data_row['data_repl_num']), end='')
+                current_repl_num += 1
+                print(" [replica ID: " + str(data_row['data_repl_num']) + " (" + str(current_repl_num) + "/" + str(data_repls) +  ")", end='')
+
                 if data_row['data_name'] == data_name and len(data_row['data_checksum']) == 0:
                     repl_nochksum_count += 1
                     ok = False
@@ -122,7 +127,7 @@ for coll_row in coll_rows:
                     repl_err_count += 1
                     ok = False
                     print(" ERROR]", end='')
-
+                
             if not ok:
                 data_anomaly_count += 1
             else:
