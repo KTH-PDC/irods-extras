@@ -20,10 +20,21 @@ def reset_line():
     sys.stdout.write(u"\u001b[1000D")
     sys.stdout.flush()
 
+# we take 3 arguments currently, db host, role and iCAT db name
+if len(sys.argv) < 4:
+    print("usage: " + sys.argv[0] + "[database host] [database role] [iCAT database name]")
+    exit(-1)
+
+db_host = sys.argv[1]
+db_role = sys.argv[2]
+db_name = sys.argv[3]
+
+print("connecting to database " + db_name + " as " + db_role + " at " + db_host + "...")
+
 try:
-    conn = psycopg2.connect("dbname='ICAT' user='postgres' host='localhost'")
+    conn = psycopg2.connect("dbname='" + db_name + "' user='" + db_role + "' host='" + db_host + "'")
 except:
-    print("ERROR: unable to connect to the database at localhost!")
+    print("ERROR: unable to connect to the database " + db_name + " as " + db_role + " at " + db_host + ", exiting...")
 
 # get a dict type cursor
 cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
