@@ -1,0 +1,115 @@
+#!/usr/bin/env python
+
+# irods-setenv - initializes the iRODS environment file with presets
+# Author: Ilari Korhonen, KTH Royal Institute of Technology
+
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import unicode_literals
+
+import datetime
+import shutil
+import pytz
+import json
+import os
+import sys
+import sqlite3
+
+# base path for iRODS environment templates
+env_templates_path = "/afs/pdc.kth.se/pdc/vol/irods/4.2.6/opt/share/environments"
+
+# PDC allocation database (read-only copy)
+alloc_readonly_db = "/afs/pdc.kth.se/misc/pdc/adm/Allocation/plasma/plasma.read.sqlite"
+
+
+# wrapper function to report messages
+def print_msg(msg):
+    print(sys.argv[0] + ": " + msg)
+
+    
+# a function to exit on error
+def exit_msg(error_msg):
+    print_msg(error_msg + ", aborting!")
+    exit(-1)
+
+
+# function to initialize user environment file from template
+def create_irods_env(template, user_name):
+    environment_tmpl_path = os.path.join(env_templates_path, "irods_environment.json" + "." + template)
+    irods_environment_path = os.path.join(os.getenv("HOME"), ".irods", "irods_environment.json")
+    backup_file_path = irods_environment_path + ".backup-" + (datetime.datetime.now(pytz.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
+    
+    if (os.path.exists(irods_environment_path)):
+        if (os.path.exists(backup_file_path)):
+            exit_msg("unable to backup iRODS environment " + template + "to " + backup_file_path)
+
+        print_msg("existing iRODS environment found, backing up to " + backup_file_path)
+        shutil.copyfile(irods_environment_path, backup_file_path)
+
+    environment_tmpl_file = open(environment_tmpl_path, 'r')
+        
+    try:
+        irods_environment_json = json.load(environment_tmpl_file)
+    except ValueError:
+        exit_msg("unable to load JSON template: caught JSON ValueError exception!")
+        
+    zone_name = irods_environment_json["irods_zone_name"]
+        
+    irods_environment_json["irods_user_name"] = user_name
+    irods_environment_json["irods_home"] = "/" + zone_name + "/home/" + user_name
+    irods_environment_json["irods_cwd"] = irods_environment_json["irods_home"]
+        
+    with open(irods_environment_path, 'w+') as irods_environment_file:
+        output = json.dump(irods_environment_json, irods_environment_file, indent=4, sort_keys=True)
+        print_msg("new iRODS environment created from template '" + template + "'")
+
+# function to resolve SNIC username via the PDC allocations DB
+def snic_resolve_user_name(user_name):
+    snic_user_name = user_name
+    alloc_db_query = "SELECT swestore_user FROM user WHERE username = '" + user_name + "'" 
+    try:
+        # open sqlite3 file without locking it (its read-only anyway)
+        conn = sqlite3.connect(alloc_readonly_db)
+        conn.isolation_level = None
+
+        cur = conn.cursor()
+        cur.execute(alloc_db_query)
+
+        if (cur.rowcount == 0):
+            print("error: unable to resolve user " + user_name + "to SNIC user name (not found), aborting!")
+            exit (-1)
+        elif(cur.rowcount > 1):
+            print ("error: unable to resolve user " + user_name + "to SNIC user name (unambiguous), aborting!")
+            exit (-1)
+        
+        result = cur.fetchone()
+        snic_user_name = result[0]
+        
+    except sqlite3.Error as err:
+        print("sqlite3 error: " + err.args[0] + ", aborting!")
+        exit(-1)
+    
+    return snic_user_name
+
+
+# main
+
+# first we check argument count
+if len(sys.argv) != 2:
+    print("please specify iRODS environment preset name!")
+    print("usage: irods-env [environment]")
+    exit(-1)
+
+# initializing to defaults
+env_name = sys.argv[1]
+os_user_name = os.getenv("USER")
+irods_user_name = os_user_name
+
+# the special case of SNIC username resolution
+if (env_name == "SNIC"):
+    irods_user_name = snic_resolve_user_name(os_user_name)
+
+# write new environment file from template
+create_irods_env(env_name, irods_user_name)
+
+print_msg("the iRODS environment is ready!")
