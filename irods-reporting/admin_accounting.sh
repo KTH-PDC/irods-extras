@@ -11,14 +11,26 @@ BASEPATH="/gpfs/fs0/var/log/admin_accounting"
 CURDATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 OUTFILE="$BASEPATH/acct-${CURDATE}.txt"
 
-query_resc_tier0="select RESC_ID where META_RESC_ATTR_NAME = 'se.snic::storage::tier' and META_RESC_ATTR_VALUE = '0'"
-resc_tier0=$(iquest "%s" "${query_resc_tier0}" | xargs echo)
-
-query_resc_tier1="select RESC_ID where META_RESC_ATTR_NAME = 'se.snic::storage::tier' and META_RESC_ATTR_VALUE = '1'"
-resc_tier1=$(iquest "%s" "${query_resc_tier1}" | xargs echo)
-
-production_resc="${resc_tier0} ${resc_tier1}"
+declare -a resc_tiers
 declare -A resc_info
+
+
+function expandlist()
+{
+    if [ $# -eq 0 ]; then
+        return;
+    fi
+
+    printf "(\'$1\'"
+    shift
+
+    for arg in $@; do
+        printf ",\'$arg\'";
+    done
+
+    printf ")"
+}
+
 
 function query_resc()
 {
@@ -26,6 +38,28 @@ function query_resc()
     local attr=$2
 
     iquest "%s" "select META_RESC_ATTR_VALUE where RESC_ID = '${resc_id}' and META_RESC_ATTR_NAME = 'se.snic::storage::${attr}'"
+}
+
+
+function acct_for_resc_tier()
+{
+    local tier=$1
+    local entity=$2
+    local class=$3
+    local prefix=$4
+    local name=$5
+
+    tier_expr=$(expandlist ${resc_tiers[$tier]})
+
+    query_tier_objs="SELECT COUNT(DATA_ID) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}' AND RESC_ID IN ${tier_expr}"
+    query_tier_bytes="SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}' AND RESC_ID IN ${tier_expr}"
+
+    tier_objs=$(iquest "%s" "${query_tier_objs}")
+
+    if [ ${tier_objs} -ne 0 ]; then
+	tier_bytes=$(iquest "%s" "${query_tier_bytes}")
+	printf "    |-- TIER ${tier} TOTAL: ${tier_objs} objects (${tier_bytes} bytes)\n"
+    fi
 }
 
 function acct_for_entity()
@@ -74,7 +108,11 @@ function acct_for_entity()
 			printf "    |-- ${resc_info[${resc}]}: $resc_objs objects ($resc_bytes bytes)\n"
 		    fi
 		done
-		
+
+		for tier in {0..1}; do
+		    acct_for_resc_tier ${tier} $@
+		done
+
 		printf "    |-- OTHER RESOURCES: $path_objs objects\n"
 	    fi
 	done
@@ -103,7 +141,19 @@ function acct_for_class()
     done
 }
 
+
 # ---
+
+for tier in {0..1}; do
+    query_resc_tier="select RESC_ID where META_RESC_ATTR_NAME = 'se.snic::storage::tier' and META_RESC_ATTR_VALUE = '${tier}'"
+    resc_tier=$(iquest "%s" "${query_resc_tier}" | xargs echo)
+
+    if [ "${resc_tier}" != "" ]; then
+	resc_tiers[${tier}]=${resc_tier}
+    fi
+done
+
+production_resc="${resc_tiers[0]} ${resc_tiers[1]}"
 
 for resc_id in ${production_resc}; do
     name=$(iquest "%s" "SELECT RESC_NAME where RESC_ID = '${resc_id}'")
