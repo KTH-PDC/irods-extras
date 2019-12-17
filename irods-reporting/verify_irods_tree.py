@@ -3,7 +3,7 @@
 # verify_irods_tree.py - performs database consistency checks to verify the integrity of the iRODS virtual tree
 # Author: Ilari Korhonen, KTH Royal Institute of Technology
 #
-# Copyright (C) 2018 KTH Royal Institute of Technology. All rights reserved.
+# Copyright (C) 2018-2019 KTH Royal Institute of Technology. All rights reserved.
 # See LICENSE file for more information.
 
 #!/usr/bin/env python
@@ -20,16 +20,25 @@ def reset_line():
     sys.stdout.write(u"\u001b[1000D")
     sys.stdout.flush()
 
+# whether we display the status line at runtime
+verbose = False
+
 # we take 3 arguments currently, db host, role and iCAT db name
 if len(sys.argv) < 4:
-    print("usage: " + sys.argv[0] + "[database host] [database role] [iCAT database name]")
+    print("usage: " + sys.argv[0] + "[database host] [database role] [iCAT database name] [-v (verbose)]")
     exit(-1)
 
 db_host = sys.argv[1]
 db_role = sys.argv[2]
 db_name = sys.argv[3]
+verbose = False
 
-print("connecting to database " + db_name + " as " + db_role + " at " + db_host + "...")
+if len(sys.argv) > 4:
+    if sys.argv[4] == "-v":
+        verbose = True
+
+if verbose == True:
+    print("connecting to database " + db_name + " as " + db_role + " at " + db_host + "...")
 
 try:
     conn = psycopg2.connect("dbname='" + db_name + "' user='" + db_role + "' host='" + db_host + "'")
@@ -39,9 +48,10 @@ except:
 # get a dict type cursor
 cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-# query all collections
-print("querying for all iRODS collections from iCAT database...")
+if (verbose == True):
+    print("querying for all iRODS collections from iCAT database...")
 
+# query all collections
 try:
     cur.execute("SELECT coll_id, coll_name, parent_coll_name from r_coll_main ORDER BY coll_name ASC")
     coll_rows = cur.fetchall()
@@ -53,7 +63,8 @@ coll_count = cur.rowcount
 orphan_count = 0
 data_err_count = 0
 
-print("total of " + str(coll_count) + " collections present, verifying all collections...")
+if verbose == True:
+    print("total of " + str(coll_count) + " collections present, verifying all collections...")
 
 # loop over collections and verify
 for coll_row in coll_rows:
@@ -65,9 +76,10 @@ for coll_row in coll_rows:
     
     if len(coll_name) > 96:
         coll_name_disp = coll_name[:96] + "..."
-    
-    print("verifying coll id: " + str(coll_id) + " [" + coll_name_disp + "]", end='')
-    reset_line()
+
+    if verbose == True:
+        print("verifying coll id: " + str(coll_id) + " [" + coll_name_disp + "]", end='')
+        reset_line()
 
     # first, verify the existence of the parent collection
     try:
@@ -120,10 +132,10 @@ for coll_row in coll_rows:
             chksums = data_row['chksums']
             dst_chksums = data_row['dst_chksums']
 
-            data_name_disp = coll_name_disp + "/" + data_name
-
-            print("verifying coll id: " + str(coll_id) + " / data id: " + str(data_id) + " [" + data_name_disp + "]", end='')
-            reset_line()
+            if verbose == True:
+                data_name_disp = coll_name_disp + "/" + data_name
+                print("verifying coll id: " + str(coll_id) + " / data id: " + str(data_id) + " [" + data_name_disp + "]", end='')
+                reset_line()
 
             if repls != dst_repls:
                 data_err_count = data_err_count + 1
@@ -146,9 +158,16 @@ for coll_row in coll_rows:
 
 
 reset_line()
-print("iRODS virtual directory verification process complete:")
-print("total of " + str(orphan_count) + " orphan collections")
-print("total of " + str(data_err_count) + " data object issues")
+
+if (verbose == True or orphan_count > 0 or data_err_count > 0):
+    print("iRODS virtual directory verification process complete:")
+    print("total of " + str(orphan_count) + " orphan collections")
+    print("total of " + str(data_err_count) + " data object issues")
+
+if (data_err_count > 0 or orphan_count > 0):
+    exit (-1)
+
+exit (0)
 
 # ----
 # print "querying all iRODS data objects from iCAT database..."
