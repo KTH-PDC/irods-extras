@@ -156,10 +156,8 @@ for coll_row in coll_rows:
             print("ERROR: data object id " + str(data_id) + " missing")
             exit(-1)
 
-
-reset_line()
-
 if (verbose == True or orphan_count > 0 or data_err_count > 0):
+    reset_line()
     print("iRODS virtual directory verification process complete:")
     print("total of " + str(orphan_count) + " orphan collections")
     print("total of " + str(data_err_count) + " data object issues")
