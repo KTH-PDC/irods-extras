@@ -110,16 +110,14 @@ for coll_row in coll_rows:
             print("\n" + objpath + " [" + checksum + "]", end='')
 
             # process each replica and compare to baseline (first available replica)
-            current_repl_num = 0
-
             for data_row in data_rows:
-                current_repl_num += 1
+                current_repl_num = data_row['data_repl_num']
                 print(" [replica ID: " + str(data_row['data_repl_num']) + " (" + str(current_repl_num) + "/" + str(data_repls) +  ")", end='')
 
                 if data_row['data_name'] == data_name and len(data_row['data_checksum']) == 0:
                     repl_nochksum_count += 1
                     ok = False
-                    print(" NOCHKSUM]", end='') 
+                    print(" NOCHKSUM]", end='')
                 elif data_row['data_name'] == data_name and data_row['data_checksum'] == checksum:
                     repl_ok_count += 1
                     print(" OK]", end='')
