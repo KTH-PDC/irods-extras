@@ -37,7 +37,7 @@ function query_resc()
     local resc_id=$1
     local attr=$2
 
-    iquest "%s" "select META_RESC_ATTR_VALUE where RESC_ID = '${resc_id}' and META_RESC_ATTR_NAME = 'se.snic::storage::${attr}'"
+    iquest --no-page "%s" "select META_RESC_ATTR_VALUE where RESC_ID = '${resc_id}' and META_RESC_ATTR_NAME = 'se.snic::storage::${attr}'"
 }
 
 
@@ -54,10 +54,10 @@ function acct_for_resc_tier()
     query_tier_objs="SELECT COUNT(DATA_ID) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}' AND RESC_ID IN ${tier_expr}"
     query_tier_bytes="SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}' AND RESC_ID IN ${tier_expr}"
 
-    tier_objs=$(iquest "%s" "${query_tier_objs}")
+    tier_objs=$(iquest --no-page "%s" "${query_tier_objs}")
 
     if [ ${tier_objs} -ne 0 ]; then
-	tier_bytes=$(iquest "%s" "${query_tier_bytes}")
+	tier_bytes=$(iquest --no-page "%s" "${query_tier_bytes}")
 	printf "    |-- TIER ${tier} TOTAL: ${tier_objs} objects (${tier_bytes} bytes)\n"
     fi
 }
@@ -76,7 +76,7 @@ function acct_for_entity()
     query_total_objs="SELECT COUNT(DATA_ID) WHERE DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}'"
     query_total_bytes="SELECT SUM(DATA_SIZE) WHERE DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}'"
     
-    total_objs=$(iquest "%s" "$query_total_objs")
+    total_objs=$(iquest --no-page "%s" "$query_total_objs")
     
     [ "${total_objs}" -ne "0" ] && total_bytes=$(iquest "%s" "$query_total_bytes") || total_bytes="0"
     
@@ -87,19 +87,19 @@ function acct_for_entity()
 	    query_path_objs="SELECT COUNT(DATA_ID) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}'"
 	    query_path_bytes="SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}'"
 
-	    path_objs=$(iquest "%s" "$query_path_objs")
+	    path_objs=$(iquest --no-page "%s" "$query_path_objs")
  
 	    if [ "$path_objs" -ne "0" ]; then
 		total_objs=$(( $total_objs - $path_objs ))
 		
-		path_bytes=$(iquest "%s" "$query_path_bytes")
+		path_bytes=$(iquest --no-page "%s" "$query_path_bytes")
 		printf "|-- Object path $objpath with $path_objs objects ($path_bytes bytes)\n"
 		
 		for resc in ${production_resc}; do
 		    query_resc_objs="SELECT COUNT(DATA_ID) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}' AND RESC_ID = '$resc'" 
 		    query_resc_bytes="SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}' AND RESC_ID = '$resc'"
 
-		    resc_objs=$(iquest "%s" "$query_resc_objs")
+		    resc_objs=$(iquest --no-page "%s" "$query_resc_objs")
 
 		    [ "${resc_objs}" -ne "0" ] && resc_bytes=$(iquest "%s" "$query_resc_bytes") || resc_bytes="0"
 		    
@@ -133,7 +133,7 @@ function acct_for_class()
     local name=$3
 
     query_entities="select USER_NAME where USER_TYPE = '${class}'"
-    entities=$(iquest "%s" "${query_entities}" | sort)
+    entities=$(iquest --no-page "%s" "${query_entities}" | sort)
     
     for entity in ${entities}; do
 	acct_for_entity ${entity} ${class} ${prefix} ${name}
@@ -146,7 +146,7 @@ function acct_for_class()
 
 for tier in {0..1}; do
     query_resc_tier="select RESC_ID where META_RESC_ATTR_NAME = 'se.snic::storage::tier' and META_RESC_ATTR_VALUE = '${tier}'"
-    resc_tier=$(iquest "%s" "${query_resc_tier}" | xargs echo)
+    resc_tier=$(iquest --no-page "%s" "${query_resc_tier}" | xargs echo)
 
     if [ "${resc_tier}" != "" ]; then
 	resc_tiers[${tier}]=${resc_tier}
@@ -156,7 +156,7 @@ done
 production_resc="${resc_tiers[0]} ${resc_tiers[1]}"
 
 for resc_id in ${production_resc}; do
-    name=$(iquest "%s" "SELECT RESC_NAME where RESC_ID = '${resc_id}'")
+    name=$(iquest --no-page "%s" "SELECT RESC_NAME where RESC_ID = '${resc_id}'")
 
     element=$(query_resc ${resc_id} "element")
     status=$(query_resc ${resc_id} "status")
