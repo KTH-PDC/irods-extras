@@ -6,7 +6,12 @@
 # Copyright (C) 2018-2019 KTH Royal Institute of Technology. All rights reserved.
 # See LICENSE file for more information.
 
+# define path for log files
 BASEPATH="/gpfs/fs0/var/log/admin_accounting"
+
+# define privilege level to use
+PRIV_LEVEL="read object"
+
 
 CURDATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 OUTFILE="$BASEPATH/acct-${CURDATE}.txt"
@@ -51,8 +56,8 @@ function acct_for_resc_tier()
 
     tier_expr=$(expandlist ${resc_tiers[$tier]})
 
-    query_tier_objs="SELECT COUNT(DATA_ID) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}' AND RESC_ID IN ${tier_expr}"
-    query_tier_bytes="SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}' AND RESC_ID IN ${tier_expr}"
+    query_tier_objs="SELECT COUNT(DATA_ID) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = '${PRIV_LEVEL}' AND USER_NAME = '${entity}' AND RESC_ID IN ${tier_expr}"
+    query_tier_bytes="SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = '${PRIV_LEVEL}' AND USER_NAME = '${entity}' AND RESC_ID IN ${tier_expr}"
 
     tier_objs=$(iquest --no-page "%s" "${query_tier_objs}")
 
@@ -73,19 +78,19 @@ function acct_for_entity()
     local prefix=$3
     local name=$4
 
-    query_total_objs="SELECT COUNT(DATA_ID) WHERE DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}'"
-    query_total_bytes="SELECT SUM(DATA_SIZE) WHERE DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}'"
+    query_total_objs="SELECT COUNT(DATA_ID) WHERE DATA_ACCESS_NAME = '${PRIV_LEVEL}' AND USER_NAME = '${entity}'"
+    query_total_bytes="SELECT SUM(DATA_SIZE) WHERE DATA_ACCESS_NAME = '${PRIV_LEVEL}' AND USER_NAME = '${entity}'"
     
     total_objs=$(iquest --no-page "%s" "$query_total_objs")
     
     [ "${total_objs}" -ne "0" ] && total_bytes=$(iquest "%s" "$query_total_bytes") || total_bytes="0"
     
-    printf "${name} ${entity} owns ${total_objs} objects (${total_bytes} bytes) in total (counting all replicas).\n"
+    printf "${name} ${entity} has ${total_objs} objects (${total_bytes} bytes) at [${PRIV_LEVEL}] privilege level in total (counting all replicas).\n"
     
     if [ "$total_objs" -ne "0" ]; then
 	for objpath in /snic.se/{${prefix}/${entity},home/public,trash}; do
-	    query_path_objs="SELECT COUNT(DATA_ID) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}'"
-	    query_path_bytes="SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}'"
+	    query_path_objs="SELECT COUNT(DATA_ID) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = '${PRIV_LEVEL}' AND USER_NAME = '${entity}'"
+	    query_path_bytes="SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = '${PRIV_LEVEL}' AND USER_NAME = '${entity}'"
 
 	    path_objs=$(iquest --no-page "%s" "$query_path_objs")
  
@@ -96,8 +101,8 @@ function acct_for_entity()
 		printf "|-- Object path $objpath with $path_objs objects ($path_bytes bytes)\n"
 		
 		for resc in ${production_resc}; do
-		    query_resc_objs="SELECT COUNT(DATA_ID) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}' AND RESC_ID = '$resc'" 
-		    query_resc_bytes="SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = 'own' AND USER_NAME = '${entity}' AND RESC_ID = '$resc'"
+		    query_resc_objs="SELECT COUNT(DATA_ID) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = '${PRIV_LEVEL}' AND USER_NAME = '${entity}' AND RESC_ID = '$resc'"
+		    query_resc_bytes="SELECT SUM(DATA_SIZE) WHERE COLL_NAME LIKE '${objpath}%' AND DATA_ACCESS_NAME = '${PRIV_LEVEL}' AND USER_NAME = '${entity}' AND RESC_ID = '$resc'"
 
 		    resc_objs=$(iquest --no-page "%s" "$query_resc_objs")
 
